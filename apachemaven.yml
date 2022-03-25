@@ -1,0 +1,49 @@
+- name: install apache Maven
+  hosts: all
+  become: true
+
+  tasks:
+  - name: Update ubuntu os package
+    apt:  upgrade=dist force_apt_get=yes
+
+  - name: Install OpenJDK
+    apt:
+      name: openjdk-11-jre-headless
+
+  - name: Check Java Version
+    command: java -version
+    register:  java_result
+    ignore_errors:  True
+  - debug:  "msg={{ java_result.stdout}}"
+
+  - name: Download Apache Maven
+    get_url:
+      url:  https://dlcdn.apache.org/maven/maven-3/3.8.5/binaries/apache-maven-3.8.5-bin.tar.gz
+      dest: /opt
+      checksum: sha512:89ab8ece99292476447ef6a6800d9842bbb60787b9b8a45c103aa61d2f205a971d8c3ddfb8b03e514455b4173602bd015e82958c0b3ddc1728a57126f773c743
+
+  - name: extract Apache Maven packages
+    unarchive:
+      src: /opt/apache-maven-3.8.5-bin.tar.gz
+      dest: /opt/
+      remote_src: yes
+
+  - name: renaming the apache maven
+    command: mv /opt/apache-maven-3.8.5 apachemaven
+    tags: rename
+  - name: creating apache maven file
+    ansible.builtin.file:
+      path: /etc/profile.d/apachemaven.sh
+      state: touch
+
+
+  - name: Update hosts
+    lineinfile:
+      path: /etc/profile.d/apachemaven.sh
+      state: present
+      line: "{{ item }}"
+    with_items:
+    - "export JAVA_HOME=/usr/lib/jvm/default-java"
+    - "export M2_HOME=/opt/apachemaven"
+    - "export MAVEN_HOME=/opt/apachemaven"
+    - "export PATH=${M2_HOME}/bin:${PATH}"
